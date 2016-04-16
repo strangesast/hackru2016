@@ -60,4 +60,18 @@ var init = function() {
   };
 };
 
-init();
+var connectButton = document.getElementById('connect-button');
+connectButton.addEventListener('click', function(evt) {
+  var options = {'filters' : [{'name' : 'HC-06'}]};
+
+  navigator.bluetooth.requestDevice(options).then(function(device) {
+    connectButton.parentElement.removeChild(connectButton);
+    console.log(device);
+    //init();
+
+  }).catch(function(err) {
+    console.log('err!');
+    console.log(err);
+  });
+});
+

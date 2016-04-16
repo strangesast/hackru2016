@@ -1,0 +1,32 @@
+#include <Adafruit_NeoPixel.h>
+
+#define PIN 6
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(15, PIN, NEO_GRB + NEO_KHZ800);
+
+void colorify() {
+}
+
+void setup()  
+{
+  Serial.begin(9600);
+  strip.begin();
+  strip.show();
+  for(int i=0; i< strip.numPixels(); i++) {
+    strip.setPixelColor(i, 255, 0, 50);
+  }
+  strip.show();
+}
+
+String incomingString = "";
+
+int i = 0;
+void loop() 
+{
+  while(!Serial) {
+  }
+  if(Serial.available() > 0) {
+    incomingString = Serial.readStringUntil('\n');
+    Serial.print("received: ");
+    Serial.println(incomingString);
+  }
+}
