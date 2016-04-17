@@ -1,13 +1,14 @@
 var WebSocketServer = require('ws').Server;
 var redis = require('redis');
 
-var client = redis.createClient();
+var client = redis.createClient(6379, 'localhost');
+client.subscribe('position');
 var connections = [];
 
 client.on('message', function(channel, message) {
-  console.log('message');
-  console.log(channel);
-  console.log(message);
+  for(var i=0; i < connections.length; i++) {
+    connections[i].send(message);
+  }
 });
 
 var connectionListener = function(ws) {
