@@ -2,7 +2,7 @@ var mainWrapper = document.getElementById('main-wrapper');
 var mainCanvas = document.getElementById('main-canvas');
 
 var init = function(player1icon, player2icon, player1gun, player2gun) {
-  var w, h, ctx, pad, r, players = {}, shots = [], currentDocKeyListener, firstPlayerId, secondPlayerId, currentPlayer=0, lastShotFrame, shotInterval = 10;
+  var w, h, ctx, pad, r, players = {}, shots = [], currentDocKeyListener, firstPlayerId, secondPlayerId, currentPlayer=0, lastShotFrame, shotInterval = 50;
 
   var recalcVals = function() {
     let box = mainWrapper.getBoundingClientRect();
@@ -88,6 +88,11 @@ var init = function(player1icon, player2icon, player1gun, player2gun) {
     player.y = ny;
 
     return [nx, ny];
+  }
+
+  var addHealth = function(i, amt) {
+    let player = players[i];
+    player.health += amt;
   }
 
   var drawHealth = function(playerId) {
@@ -178,7 +183,7 @@ var init = function(player1icon, player2icon, player1gun, player2gun) {
   }
 
   var addShot = function(x, y, vx, vy, owner) {
-    shots.push({x: x, y: y, vx: vx, vy: vy, own: owner, s: Date.now(), f: 0});
+    shots.push({x: x, y: y, vx: vx, vy: vy, owner: owner, s: Date.now(), f: 0});
   }
 
   var firePlayer = function(playerId) {
@@ -200,7 +205,15 @@ var init = function(player1icon, player2icon, player1gun, player2gun) {
         let d = (Date.now() - s.s)/s.f;
         s.x += s.vx*d/50;
         s.y += s.vy*d/50;
-        if(s.x > w - pad || s.x < pad || s.y > h - pad || s.y < pad) {
+        var playerId = s.owner == firstPlayerId ? secondPlayerId : firstPlayerId;
+        var player = players[playerId];
+        if(Math.abs(player.x - s.x) < 10 && Math.abs(player.y - s.y) < 10) {
+          console.log('collision!');
+          addHealth(playerId, -8);
+          shots.splice(i, 1);
+          
+          break;
+        } else if (s.x > w - pad || s.x < pad || s.y > h - pad || s.y < pad) {
           shots.splice(i, 1);
         }
       }
@@ -273,16 +286,16 @@ var init = function(player1icon, player2icon, player1gun, player2gun) {
     var s = addPlayer(2/3*w, h/2, Math.PI);
   }, 1000);
 
-  var interval;
+  //var interval;
 
-  interval = setInterval(function() {
-    if(firstPlayerId) {
-      players[firstPlayerId].health -= 5;
-      if(players[firstPlayerId].health < 0) {
-        players[firstPlayerId].health = 100;
-      }
-    }
-  }, 500)
+  //interval = setInterval(function() {
+  //  if(firstPlayerId) {
+  //    players[firstPlayerId].health -= 5;
+  //    if(players[firstPlayerId].health < 0) {
+  //      players[firstPlayerId].health = 100;
+  //    }
+  //  }
+  //}, 500)
 
 };
 
