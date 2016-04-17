@@ -1,8 +1,8 @@
 var mainWrapper = document.getElementById('main-wrapper');
 var mainCanvas = document.getElementById('main-canvas');
 
-var init = function(socket, player1icon, player2icon, player1gun, player2gun) {
-  var w, h, ctx, pad, r, players = {}, shots = [], currentDocKeyListener, firstPlayerId, secondPlayerId, currentPlayer=0, lastShotFrame, shotInterval = 50;
+var init = function(socket, new_players, gun, guninv) {
+  var w, h, ctx, pad, r, players = {}, playersByIdArray = [], shots = [], blobs = [], currentDocKeyListener, currentPlayer=0, lastShotFrame, shotInterval = 50, minPlayerShotInterval = 500, hitboxvisible=false;
 
   var recalcVals = function() {
     let box = mainWrapper.getBoundingClientRect();
@@ -48,24 +48,26 @@ var init = function(socket, player1icon, player2icon, player1gun, player2gun) {
     ctx.fill();
   }
 
-  var addPlayer = function(xi, yi, th) {
-    let rand = Math.round(Math.random()*100); //ugly
-    players[rand] = {
-      x: xi || w/2,
-      y: yi || h/2,
-      th: th || 0,
-      health: 100
+  var addPlayer = function(num, xi, yi, th, icon, gunicon, dir) {
+    players[num] = {
+      x: isNaN(xi) ? w/2 : xi,
+      y: isNaN(yi) ? h/2 : yi,
+      th: isNaN(th) ? 0 : th,
+      r: 20,
+      lastshot: undefined,
+      health: 100,
+      icon: icon,
+      gunicon: gunicon,
+      dir: dir
     };
-    if(firstPlayerId === undefined) {
-      firstPlayerId = rand;
-    } else {
-      secondPlayerId = rand;
-    }
-    return rand;
+    playersByIdArray.push(num);
+    return num;
   }
 
   var removePlayer = function(i) {
+    playersByIdArray.splice(playersByIdArray.indexOf(i), 1);
     delete players[i];
+    updateServer(i);
   }
 
   var aimPlayer = function(i, theta, rel) {
@@ -74,6 +76,7 @@ var init = function(socket, player1icon, player2icon, player1gun, player2gun) {
       theta = (player.th + theta) % (Math.PI*2);
     }
     player.th = theta;
+    updateServer(i);
   }
 
   var movePlayer = function(i, x, y, rel) {
@@ -82,56 +85,89 @@ var init = function(socket, player1icon, player2icon, player1gun, player2gun) {
       x = player.x + x;
       y = player.y + y;
     }
-    let nx = Math.min(w-pad, Math.max(x, pad));
-    let ny = Math.min(h-pad, Math.max(y, pad));
+    let nx = Math.min(w-pad-player.r, Math.max(x, pad+player.r));
+    let ny = Math.min(h-pad-player.r, Math.max(y, pad+player.r));
     player.x = nx;
     player.y = ny;
 
+    for(var j=0; j < blobs.length; j++) {
+      let blob = blobs[j];
+      if(Math.sqrt(Math.pow(player.x-blob.x, 2)+Math.pow(player.y-blob.y, 2)) < player.r) {
+        addHealth(i, Math.round(blob.r));
+        blobs.splice(j, 1);
+        break;
+      }
+    }
+    updateServer(i);
     return [nx, ny];
+  }
+
+  var updateServer = function(i) {
+    let player = players[i];
+    var res = {};
+    res[i] = {};
+    for(var prop in player) {
+      if(typeof player[prop] == 'number') {
+        res[i][prop] = player[prop];
+      }
+    }
+    socket.send(JSON.stringify(res));
   }
 
   var addHealth = function(i, amt) {
     let player = players[i];
-    player.health += amt;
+    player.health = Math.min(100, Math.max(0, player.health + amt));
+    updateServer(i);
+  }
+
+  var getGrd = function(p) {
+    var grd=ctx.createLinearGradient(0,0,0,2/3*h);
+    switch (Math.floor(p/10)) {
+      case 10:
+      case 9:
+      case 8:
+        grd.addColorStop(0,"rgb(0, 255, 0)");
+        grd.addColorStop(1,"rgb(0, 200, 0)");
+        break;
+      case 7:
+      case 6:
+        grd.addColorStop(0,"rgb(60, 220, 60)");
+        grd.addColorStop(1,"rgb(60, 180, 60)");
+        break;
+      case 5:
+        grd.addColorStop(0,"rgb(40, 140, 40)");
+        grd.addColorStop(1,"rgb(40, 120, 40)");
+        break;
+      case 4:
+      case 3:
+        grd.addColorStop(0,"rgb(150, 80, 80)");
+        grd.addColorStop(1,"rgb(120, 80, 80)");
+        break;
+      case 2:
+      case 1:
+        grd.addColorStop(0,"rgb(255, 0, 0)");
+        grd.addColorStop(1,"rgb(200, 0, 0)");
+        break;
+      case 0:
+        grd.addColorStop(0,"rgb(255, 0, 0)");
+        grd.addColorStop(1,"rgb(200, 0, 0)");
+        break;
+    }
+    return grd;
   }
 
   var drawHealth = function(playerId) {
-    if(isNaN(playerId)) {
+    if(isNaN(playerId) || players[playerId] === undefined) {
       return false;
     }
-    var grd=ctx.createLinearGradient(0,0,0,2/3*h);
     let player = players[playerId];
-    if(player.health > 90) { 
-      grd.addColorStop(0,"rgb(0, 255, 0)");
-      grd.addColorStop(1,"rgb(0, 200, 0)");
-
-    } else if(player.health > 70) {
-      grd.addColorStop(0,"rgb(60, 220, 60)");
-      grd.addColorStop(1,"rgb(60, 180, 60)");
-
-    } else if(player.health > 50) {
-      grd.addColorStop(0,"rgb(40, 140, 40)");
-      grd.addColorStop(1,"rgb(40, 120, 40)");
-
-    } else if(player.health > 30) {
-      grd.addColorStop(0,"rgb(150, 80, 80)");
-      grd.addColorStop(1,"rgb(120, 80, 80)");
-
-    } else if(player.health > 10) {
-      grd.addColorStop(0,"rgb(255, 0, 0)");
-      grd.addColorStop(1,"rgb(200, 0, 0)");
-
-    } else {
-      grd.addColorStop(0,"rgb(255, 0, 0)");
-      grd.addColorStop(1,"rgb(200, 0, 0)");
-    }
-
+    var grd = getGrd(player.health);
     ctx.fillStyle = grd;
     let ys = h*(1/2-1/3+2/3*(1-player.health/100));
     var xs;
-    if(playerId == firstPlayerId) {
+    if(playerId == 0) {
       xs = pad/10;
-    } else if (playerId == secondPlayerId) {
+    } else if (playerId == 1) {
       xs = w - pad*9/10;
     }
     ctx.fillRect(xs, ys, pad*8/10, 2/3*h*player.health/100);
@@ -144,29 +180,18 @@ var init = function(socket, player1icon, player2icon, player1gun, player2gun) {
   var drawPlayers = function() {
     ctx.fillStyle = 'black';
     for(var playerId in players) {
-      var icon;
-      var th;
-      var xoff;
-      var xoffg;
       let player = players[playerId];
-      if(playerId == firstPlayerId) {
-        icon = player1icon;
-        gunicon = player1gun;
-        th = player.th;
-        xoff = player.x-30;
-        xoffg = -50;
-      } else if (playerId == secondPlayerId) {
-        icon = player2icon;
-        gunicon = player2gun;
-        th = player.th + Math.PI;
-        xoff = player.x+30;
-        xoffg = 0;
+      if(hitboxvisible) {
+        ctx.fillStyle='blue';
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.r, 0, Math.PI*2);
+        ctx.fill();
       }
-      ctx.drawImage(icon, xoff, player.y-30);
+      ctx.drawImage(player.icon, player.x-player.icon.width/2, player.y-player.icon.height/2);
       ctx.save();
       ctx.translate(player.x, player.y);
-      ctx.rotate(th);
-      ctx.drawImage(gunicon, xoffg, -4);
+      ctx.rotate(player.th);
+      ctx.drawImage(player.gunicon, -player.gunicon.width/2, 10);
       ctx.translate(-player.x, -player.y);
       ctx.restore();
     }
@@ -182,13 +207,33 @@ var init = function(socket, player1icon, player2icon, player1gun, player2gun) {
     }
   }
 
+  var drawBlobs = function() {
+    ctx.fillStyle = 'blue';
+    for(var i=0; i < blobs.length; i++) {
+      let blob = blobs[i];
+      ctx.beginPath();
+      ctx.arc(blob.x, blob.y, blob.r, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+
+
   var addShot = function(x, y, vx, vy, owner) {
     shots.push({x: x, y: y, vx: vx, vy: vy, owner: owner, s: Date.now(), f: 0});
   }
 
   var firePlayer = function(playerId) {
     let player = players[playerId];
-    addShot(player.x, player.y, Math.cos(player.th), Math.sin(player.th), playerId);
+    if(player.lastshot === undefined || player.lastshot + minPlayerShotInterval < Date.now()) {
+      player.lastshot = Date.now();
+      addShot(
+          player.x-Math.sin(player.th)*12+(1-player.dir*2)*Math.cos(player.th)*24,
+          player.y+Math.cos(player.th)*12+(1-player.dir*2)*Math.sin(player.th)*24,
+          Math.cos(player.th)*(1-player.dir*2),
+          Math.sin(player.th)*(1-player.dir*2),
+          playerId);
+    }
   };
 
   var redraw = function() {
@@ -196,8 +241,9 @@ var init = function(socket, player1icon, player2icon, player1gun, player2gun) {
     background();
     drawPlayers();
     drawShots();
-    drawHealth(firstPlayerId);
-    drawHealth(secondPlayerId);
+    drawBlobs();
+    drawHealth(0);
+    drawHealth(1);
     if(lastShotFrame === undefined || lastShotFrame + shotInterval < Date.now()) {
       for(var i=0; i < shots.length; i++) {
         let s = shots[i];
@@ -205,10 +251,9 @@ var init = function(socket, player1icon, player2icon, player1gun, player2gun) {
         let d = (Date.now() - s.s)/s.f;
         s.x += s.vx*d/50;
         s.y += s.vy*d/50;
-        var playerId = s.owner == firstPlayerId ? secondPlayerId : firstPlayerId;
+        var playerId = s.owner == 0 ? 1 : 0;
         var player = players[playerId];
-        if(Math.abs(player.x - s.x) < 10 && Math.abs(player.y - s.y) < 10) {
-          console.log('collision!');
+        if(Math.sqrt(Math.pow(player.x - s.x, 2) + Math.pow(player.y - s.y, 2)) < player.r) {
           addHealth(playerId, -8);
           shots.splice(i, 1);
           
@@ -227,44 +272,46 @@ var init = function(socket, player1icon, player2icon, player1gun, player2gun) {
 
   document.onkeydown = function(evt) {
     var keyCode = evt.keyCode;
-    if(keyCode == 49) {
-      // player 1
-      currentPlayer = 0;
-    } else if (keyCode == 50) {
-      // player 2
-      currentPlayer = 1;
+    if(keyCode > 48 && keyCode < 58) {
+      currentPlayer = keyCode-49;
     }
-    currentPlayerId = currentPlayer == 0 ? firstPlayerId : secondPlayerId;
+    currentPlayerId = playersByIdArray[currentPlayer];
 
     if(currentPlayerId !== undefined) {
-      let player = players[currentPlayerId];
-      if(keyCode == 37) {
-        //console.log('left');
-        movePlayer(currentPlayerId, -1, 0, true)
-      } else if (keyCode == 38) {
-        //console.log('up');
-        movePlayer(currentPlayerId, 0, -1, true)
-      } else if (keyCode == 39) {
-        //console.log('right');
-        movePlayer(currentPlayerId, 1, 0, true)
-      } else if (keyCode == 40) {
-        //console.log('down');
-        movePlayer(currentPlayerId, 0, 1, true)
-      } else if (keyCode == 90) {
-        //console.log('counterclockwise');
-        aimPlayer(currentPlayerId, -10/180*Math.PI, true);
-      } else if (keyCode == 88) {
-        //console.log('clockwise');
-        aimPlayer(currentPlayerId, 10/180*Math.PI, true);
-      } else if (keyCode == 32) {
-        firePlayer(currentPlayerId);
+      switch(keyCode) {
+        case 37: 
+          movePlayer(currentPlayerId, -1, 0, true);
+          break;
+        case 38:
+          movePlayer(currentPlayerId, 0, -1, true);
+          break;
+        case 39:
+          movePlayer(currentPlayerId, 1, 0, true);
+          break;
+        case 40:
+          movePlayer(currentPlayerId, 0, 1, true);
+          break;
+        case 90:
+          aimPlayer(currentPlayerId, -10/180*Math.PI, true);
+          break;
+        case 88:
+          aimPlayer(currentPlayerId, 10/180*Math.PI, true);
+          break;
+        case 32:
+          firePlayer(currentPlayerId);
+          break;
       }
-      redraw();
     }
   }
 
   socket.onmessage = function(message_evt) {
-    console.log(message_evt.data);
+    var data = JSON.parse(message_evt.data);
+    console.log(data);
+    for(var playerId in data) {
+      for(var prop in data[playerId]) {
+        players[playerId][prop] = data[playerId][prop];
+      }
+    }
   };
 
   var fps = 30;
@@ -286,21 +333,20 @@ var init = function(socket, player1icon, player2icon, player1gun, player2gun) {
   draw();
 
   setTimeout(function() {
-    var f = addPlayer();
-    var s = addPlayer(2/3*w, h/2, Math.PI);
+    for(var i=0; i < new_players.length; i++) {
+      addPlayer(i, w/new_players.length*i+pad+20, h/2, 2*Math.PI*(i%2), new_players[i].icon, i%2==0 ? gun : guninv, i%2);
+    }
   }, 100);
 
-  //var interval;
-
-  //interval = setInterval(function() {
-  //  if(firstPlayerId) {
-  //    players[firstPlayerId].health -= 5;
-  //    if(players[firstPlayerId].health < 0) {
-  //      players[firstPlayerId].health = 100;
-  //    }
-  //  }
-  //}, 500)
-
+  setInterval(function() {
+    if(blobs.length < 5) {
+      blobs.push({
+        x: pad + Math.random()*(w-2*pad),
+        y: pad + Math.random()*(h-2*pad),
+        r: (Math.random()*0.8 + 0.2)*5
+      });
+    }
+  }, 1200);
 };
 
 var loadImage = function(url) {
@@ -327,7 +373,7 @@ Promise.all(['/images/goofevilsmall.png', '/images/goofcoolsmall.png', '/images/
       return resolve(socket);
     }
   }).then(function(socket) {
-    init(socket, imgs[0], imgs[1], imgs[2], imgs[3]);
+    init(socket, [{'icon':imgs[0]}, {'icon':imgs[1]}], imgs[2], imgs[3]);
   });
 });
 
