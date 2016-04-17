@@ -1,7 +1,7 @@
 var mainWrapper = document.getElementById('main-wrapper');
 var mainCanvas = document.getElementById('main-canvas');
 
-var init = function(player1icon, player2icon, player1gun, player2gun) {
+var init = function(socket, player1icon, player2icon, player1gun, player2gun) {
   var w, h, ctx, pad, r, players = {}, shots = [], currentDocKeyListener, firstPlayerId, secondPlayerId, currentPlayer=0, lastShotFrame, shotInterval = 50;
 
   var recalcVals = function() {
@@ -263,6 +263,10 @@ var init = function(player1icon, player2icon, player1gun, player2gun) {
     }
   }
 
+  socket.onmessage = function(message_evt) {
+    console.log(message_evt.data);
+  };
+
   var fps = 30;
   var now;
   var then = Date.now();
@@ -284,7 +288,7 @@ var init = function(player1icon, player2icon, player1gun, player2gun) {
   setTimeout(function() {
     var f = addPlayer();
     var s = addPlayer(2/3*w, h/2, Math.PI);
-  }, 1000);
+  }, 100);
 
   //var interval;
 
@@ -316,7 +320,15 @@ Promise.all(['/images/goofevilsmall.png', '/images/goofcoolsmall.png', '/images/
   return loadImage(img_url);
 
 })).then(function(imgs) {
-  init(imgs[0], imgs[1], imgs[2], imgs[3]);
+  var socketAddress = "ws://" + window.location.host + "/sockets";
+  return new Promise(function(resolve, reject) {
+    var socket = new WebSocket(socketAddress);
+    socket.onopen = function() {
+      return resolve(socket);
+    }
+  }).then(function(socket) {
+    init(socket, imgs[0], imgs[1], imgs[2], imgs[3]);
+  });
 });
 
 //var img = new Image();
