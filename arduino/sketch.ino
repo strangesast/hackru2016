@@ -5,7 +5,7 @@
 
 #define PIN 6
 
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(15, PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(35, PIN, NEO_GRB + NEO_KHZ800);
 
 // IMPORTANT: To reduce NeoPixel burnout risk, add 1000 uF capacitor across
 // pixel power leads, add 300 - 500 Ohm resistor on first pixel's data input
@@ -18,8 +18,6 @@ void setup() {
     if (F_CPU == 16000000) clock_prescale_set(clock_div_1);
   #endif
   // End of trinket special code
-  Serial.begin(9600);
-
 
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
@@ -130,7 +128,7 @@ void loop() {
   //theaterChase(strip.Color(0, 0, 127), 50); // Blue
 
   //rainbow(20);
-  //rainbowCycle(20);
+  rainbowCycle(20);
   //theaterChaseRainbow(50);
 }
 
