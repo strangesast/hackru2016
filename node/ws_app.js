@@ -27,12 +27,24 @@ var connectionListener = function(ws) {
   ws.send(JSON.stringify({'message' : 'welcome!'}));
 
   ws.on('message', function(message) {
-    var data = JSON.parse(message);
-    for(var playerId in data) {
-      console.log(playerId);
-      var key = (playerId == 0) ? 'player1' : 'player2';
-      writer.publish(key, JSON.stringify(data[playerId]));
-    };
+    if(message == "player1") {
+      return client.get('player1', function(err, data1) {
+        return ws.send(JSON.stringify(data1));
+      });
+    } else if (message == "player2") {
+      return client.get('player2', function(err, data1) {
+        return ws.send(JSON.stringify(data1));
+      });
+
+    } else {
+      var data = JSON.parse(message);
+
+      for(var playerId in data) {
+        console.log(playerId);
+        var key = (playerId == 0) ? 'player1' : 'player2';
+        writer.publish(key, JSON.stringify(data[playerId]));
+      };
+    }
   });
 
   ws.on('close', function() {
