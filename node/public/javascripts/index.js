@@ -270,33 +270,39 @@ var init = function(socket, new_players, gun, guninv) {
     redraw();
   };
 
+  var keysDown = {};
+
+  document.onkeyup = function(evt) {
+    var keyCode = evt.keyCode;
+    keysDown[keyCode] = false;
+  };
+
   document.onkeydown = function(evt) {
     var keyCode = evt.keyCode;
+    keysDown[keyCode] = true;
+
     if(keyCode > 48 && keyCode < 58) {
       currentPlayer = keyCode-49;
     }
+
     currentPlayerId = playersByIdArray[currentPlayer];
 
     if(currentPlayerId !== undefined) {
+      var px = 0;
+      var py = 0;
+      var th = 0;
+      if(keysDown[37]) px -= 1;
+      if(keysDown[38]) py -= 1;
+      if(keysDown[39]) px += 1;
+      if(keysDown[40]) py += 1;
+      if(keysDown[90]) th -= 10/180*Math.PI;
+      if(keysDown[88]) th += 10/180*Math.PI;
+      movePlayer(currentPlayerId, px, py, true);
+      aimPlayer(currentPlayerId, th, true);
+    }
+
+    if(currentPlayerId !== undefined) {
       switch(keyCode) {
-        case 37: 
-          movePlayer(currentPlayerId, -1, 0, true);
-          break;
-        case 38:
-          movePlayer(currentPlayerId, 0, -1, true);
-          break;
-        case 39:
-          movePlayer(currentPlayerId, 1, 0, true);
-          break;
-        case 40:
-          movePlayer(currentPlayerId, 0, 1, true);
-          break;
-        case 90:
-          aimPlayer(currentPlayerId, -10/180*Math.PI, true);
-          break;
-        case 88:
-          aimPlayer(currentPlayerId, 10/180*Math.PI, true);
-          break;
         case 32:
           firePlayer(currentPlayerId);
           break;
