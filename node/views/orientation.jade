@@ -1,0 +1,10 @@
+extends layout
+
+block content
+  div#main-orientation
+    pre#values
+
+block scripts
+  script.
+    document.PLAYER = #{player};
+  script(src='/javascripts/orientation.js')
