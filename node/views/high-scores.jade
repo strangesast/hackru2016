@@ -1,0 +1,18 @@
+extends layout
+
+block content
+
+  h3 High score submission
+  form(action="/high-scores", method="POST")
+    label(for="name") Name
+    input#name(name="name", placeholder="your name, silly")
+
+    label(for="score") Score
+    input#score(name="score", placeholder="your score")
+
+    button(type="submit") Submit
+
+
+  ul
+    each score in scores
+      li #{score.name} (#{score.score})
