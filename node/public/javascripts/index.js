@@ -138,7 +138,7 @@ var init = function(player1icon, player2icon, player1gun, player2gun) {
     ctx.fillStyle = 'black';
     ctx.font = Math.round(pad/2) + 'px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(player.health, xs, ys+Math.round(pad/2));
+    ctx.fillText(player.health, xs+pad*4/10, ys+Math.round(pad/2));
   }
 
   var drawPlayers = function() {
