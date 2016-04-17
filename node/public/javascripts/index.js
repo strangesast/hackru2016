@@ -312,10 +312,17 @@ var init = function(socket, new_players, gun, guninv) {
 
   socket.onmessage = function(message_evt) {
     var data = JSON.parse(message_evt.data);
-    console.log(data);
     for(var playerId in data) {
+      var fire = false;
       for(var prop in data[playerId]) {
-        players[playerId][prop] = data[playerId][prop];
+        if(prop == 'fire') {
+          fire=true;
+        } else {
+          players[playerId][prop] = data[playerId][prop];
+        }
+      }
+      if(fire) {
+        firePlayer(playerId);
       }
     }
   };
@@ -353,6 +360,15 @@ var init = function(socket, new_players, gun, guninv) {
       });
     }
   }, 1200);
+
+  document.getElementById('update-image').addEventListener('click', function() {
+    var player = document.getElementById('player-select').value;
+    var url = document.getElementById('new-image-url-input').value;
+
+    loadImage(url).then(function(img) {
+      players[player].icon = img;
+    });
+  });
 };
 
 var loadImage = function(url) {

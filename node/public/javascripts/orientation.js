@@ -12,6 +12,8 @@ var init = function() {
   });
 };
 
+var vals = [];
+
 init().then(function(socket) {
   var playerId = document.PLAYER == 'player1' ? 0 : 1;
 
@@ -24,14 +26,24 @@ init().then(function(socket) {
     window.addEventListener('deviceorientation', function(evt) {
       if(lastMeasured === undefined || lastMeasured + minDelay < Date.now()) {
         lastMeasured = Date.now();
-        valuesElement.textContent = [evt.gamma, evt.alpha].join(", ");
+        vals.push(evt.beta)
+        vals = vals.slice(-5);
+        var avg = vals.reduce(function(a, b) {return a+b})/vals.length;
+        valuesElement.textContent = [avg].join(", ");
 
         var res = {};
-        res[playerId] = {x: evt.gamma, y: evt.beta, th: (evt.alpha % (Math.PI*2))/20};
+        res[playerId] = {th: (avg % 360) / 180 * 2*Math.PI};
       
         socket.send(JSON.stringify(res));
 
       }
     }, false);
   }
+
+  document.getElementById('fire-button').addEventListener('click', function() {
+    var res = {}
+    res[playerId] = {fire: true};
+   
+    socket.send(JSON.stringify(res));
+  });
 });

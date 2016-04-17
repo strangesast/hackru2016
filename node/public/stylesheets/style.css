@@ -27,3 +27,12 @@ canvas {
   image-rendering: pixelated;                 /* Awesome future-browsers       */
   -ms-interpolation-mode: nearest-neighbor;   /* IE                            */
 }
+#controls {
+  position: fixed;
+  bottom: 0;
+  left: 25%;
+}
+#fire-button {
+  width: 300px;
+  height: 120px;
+}

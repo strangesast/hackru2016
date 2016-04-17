@@ -6,14 +6,13 @@ var writer = redis.createClient(6379, 'localhost');
 client.subscribe('position');
 client.subscribe('player1');
 client.subscribe('player2');
+client.subscribe('fire');
 
 var connections = [];
 
 client.on('message', function(channel, message) {
-  console.log(message);
   for(var i=0; i < connections.length; i++) {
     var res = {};
-    console.log(channel);
     var key = channel == 'player1' ? 0 : 1;
     res[key] = JSON.parse(message);
     connections[i].send(JSON.stringify(res));
