@@ -1,0 +1,24 @@
+{
+  "name": "Silleh",
+  "description": "Silleh",
+  "version": "0.0.0.1",
+  "manifest_version": 2,
+  "icons": [
+  ],
+  "app": {
+    "urls": [
+      "http://samzagrobelny.com:3000/"
+    ],
+    "launch": {
+      "web_url": "http://samzagrobelny.com:3000/"
+    }
+  },
+  "theme_color" : "#000000",
+  "display" : "standalone",
+  "orientation" : "portrait",
+  "kiosk_enabled": true,
+  "kiosk_only": true,
+  "permissions" : [
+    "fullscreen"
+  ]
+}

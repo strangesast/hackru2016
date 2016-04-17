@@ -4,6 +4,14 @@ block content
   #main-wrapper
     canvas#main-canvas
     //button#connect-button Connect
+    div#controls
+      input#new-image-url-input
+      select#player-select
+        option(value=0) Player 1
+        option(value=1) Player 2
+      button#update-image Update
+      a(href="/high-scores") Submit your high score
+      a(href="/instructions") Instructions
 
 block scripts
   script(src='/javascripts/index.js')

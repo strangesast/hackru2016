@@ -118,6 +118,18 @@ var init = function(socket, new_players, gun, guninv) {
     let player = players[i];
     player.health = Math.min(100, Math.max(0, player.health + amt));
     updateServer(i);
+    if(player.health == 0 || player.health < 0) {
+      player.health = 0;
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0, 0, w, h);
+      ctx.alignText = 'center';
+      ctx.font = '30px Arial';
+      ctx.fillStyle = 'red';
+      ctx.fillText('Game Over', w/2, h/2);
+      ctx.font = '20px Arial';
+      ctx.fillText('Player ' + (i == 0 ? 1 : 0) + ' Wins', w/2, h/2+35);
+      window.cancelAnimationFrame(currentAnimationRequest);
+    }
   }
 
   var getGrd = function(p) {
@@ -312,10 +324,17 @@ var init = function(socket, new_players, gun, guninv) {
 
   socket.onmessage = function(message_evt) {
     var data = JSON.parse(message_evt.data);
-    console.log(data);
     for(var playerId in data) {
+      var fire = false;
       for(var prop in data[playerId]) {
-        players[playerId][prop] = data[playerId][prop];
+        if(prop == 'fire') {
+          fire=true;
+        } else {
+          players[playerId][prop] = data[playerId][prop];
+        }
+      }
+      if(fire) {
+        firePlayer(playerId);
       }
     }
   };
@@ -325,9 +344,10 @@ var init = function(socket, new_players, gun, guninv) {
   var then = Date.now();
   var interval = 1000/fps;
   var delta;
+  var currentAnimationRequest;
     
   function draw() {
-    requestAnimationFrame(draw);
+    currentAnimationRequest = requestAnimationFrame(draw);
     now = Date.now();
     delta = now - then;
     if (delta > interval) {
@@ -353,6 +373,15 @@ var init = function(socket, new_players, gun, guninv) {
       });
     }
   }, 1200);
+
+  document.getElementById('update-image').addEventListener('click', function() {
+    var player = document.getElementById('player-select').value;
+    var url = document.getElementById('new-image-url-input').value;
+
+    loadImage(url).then(function(img) {
+      players[player].icon = img;
+    });
+  });
 };
 
 var loadImage = function(url) {
